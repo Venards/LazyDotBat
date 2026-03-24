@@ -7,5 +7,5 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0security_audit.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0..\ps1\security_audit.ps1"
 pause

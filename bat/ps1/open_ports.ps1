@@ -1,13 +1,18 @@
+function Write-Good  ($msg) { Write-Host $msg -ForegroundColor Green }
+function Write-Bad   ($msg) { Write-Host $msg -ForegroundColor Red }
+function Write-Warn  ($msg) { Write-Host $msg -ForegroundColor Yellow }
+function Write-Label ($msg) { Write-Host $msg -ForegroundColor Cyan }
+
 $sep = '=' * 50
 $connections = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Sort-Object LocalPort
 
 Write-Host ''
 Write-Host $sep
-Write-Host '  OPEN PORTS'
+Write-Label '  OPEN PORTS'
 Write-Host $sep
 
 Write-Host ''
-Write-Host '[ TCP LISTENING ]'
+Write-Label '[ TCP LISTENING ]'
 Write-Host ('  {0,-8} {1,-25} {2,-8} {3}' -f 'PORT', 'ADDRESS', 'PID', 'PROCESS')
 Write-Host ('  {0,-8} {1,-25} {2,-8} {3}' -f '----', '-------', '---', '-------')
 foreach ($c in $connections) {
@@ -18,7 +23,7 @@ foreach ($c in $connections) {
 
 $udp = Get-NetUDPEndpoint -ErrorAction SilentlyContinue | Sort-Object LocalPort
 Write-Host ''
-Write-Host '[ UDP ENDPOINTS ]'
+Write-Label '[ UDP ENDPOINTS ]'
 Write-Host ('  {0,-8} {1,-25} {2,-8} {3}' -f 'PORT', 'ADDRESS', 'PID', 'PROCESS')
 Write-Host ('  {0,-8} {1,-25} {2,-8} {3}' -f '----', '-------', '---', '-------')
 foreach ($u in $udp) {
@@ -29,7 +34,7 @@ foreach ($u in $udp) {
 
 $established = Get-NetTCPConnection -State Established -ErrorAction SilentlyContinue | Sort-Object RemotePort
 Write-Host ''
-Write-Host '[ ESTABLISHED CONNECTIONS ]'
+Write-Label '[ ESTABLISHED CONNECTIONS ]'
 Write-Host ('  {0,-8} {1,-25} {2,-8} {3}' -f 'PORT', 'REMOTE ADDRESS', 'PID', 'PROCESS')
 Write-Host ('  {0,-8} {1,-25} {2,-8} {3}' -f '----', '--------------', '---', '-------')
 foreach ($e in $established) {
@@ -39,7 +44,7 @@ foreach ($e in $established) {
 }
 
 Write-Host ''
-Write-Host '[ SUMMARY ]'
+Write-Label '[ SUMMARY ]'
 $listenCount = @($connections).Count
 $estCount = @($established).Count
 $udpCount = @($udp).Count
@@ -52,10 +57,10 @@ $risky = @(4444, 5555, 1337, 31337, 6666, 6667, 8888, 9999, 4443, 2222)
 $flagged = $connections | Where-Object { $_.LocalPort -in $risky }
 if ($flagged) {
     Write-Host ''
-    Write-Host '  [!] WARNING: Suspicious ports detected:'
+    Write-Bad '  [!] WARNING: Suspicious ports detected:'
     foreach ($f in $flagged) {
         $proc = try { (Get-Process -Id $f.OwningProcess -ErrorAction SilentlyContinue).ProcessName } catch { '???' }
-        Write-Host "      Port $($f.LocalPort) - PID $($f.OwningProcess) ($proc)"
+        Write-Bad "      Port $($f.LocalPort) - PID $($f.OwningProcess) ($proc)"
     }
 }
 

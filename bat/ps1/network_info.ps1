@@ -1,9 +1,14 @@
+function Write-Good  ($msg) { Write-Host $msg -ForegroundColor Green }
+function Write-Bad   ($msg) { Write-Host $msg -ForegroundColor Red }
+function Write-Warn  ($msg) { Write-Host $msg -ForegroundColor Yellow }
+function Write-Label ($msg) { Write-Host $msg -ForegroundColor Cyan }
+
 $sep = '=' * 50
 $adapters = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' }
 
 Write-Host ''
 Write-Host $sep
-Write-Host '  NETWORK INFO'
+Write-Label '  NETWORK INFO'
 Write-Host $sep
 
 foreach ($adapter in $adapters) {
@@ -15,7 +20,7 @@ foreach ($adapter in $adapters) {
     $desc    = $adapter.InterfaceDescription
     $speed   = $adapter.LinkSpeed
     Write-Host ''
-    Write-Host "[ $name ]"
+    Write-Label "[ $name ]"
     Write-Host "  Description : $desc"
     Write-Host "  IP          : $ip"
     Write-Host "  Gateway     : $gateway"
@@ -25,24 +30,24 @@ foreach ($adapter in $adapters) {
 }
 
 Write-Host ''
-Write-Host '[ PUBLIC IP ]'
+Write-Label '[ PUBLIC IP ]'
 try {
     $pub = Invoke-RestMethod -Uri 'https://api.ipify.org' -TimeoutSec 5
-    Write-Host "  Public IP   : $pub"
+    Write-Good "  Public IP   : $pub"
 } catch {
-    Write-Host '  Public IP   : (could not reach internet)'
+    Write-Bad '  Public IP   : (could not reach internet)'
 }
 
 Write-Host ''
-Write-Host '[ PING TEST ]'
+Write-Label '[ PING TEST ]'
 $targets = @('8.8.8.8', '1.1.1.1', 'google.com')
 foreach ($t in $targets) {
     $result = ping $t -n 2 | Select-String 'Average'
     if ($result) {
         $ms = ($result -split 'Average = ')[1].Trim().TrimEnd('ms')
-        Write-Host "  $t - $ms ms"
+        Write-Good "  $t - $ms ms"
     } else {
-        Write-Host "  $t - unreachable"
+        Write-Bad "  $t - unreachable"
     }
 }
 

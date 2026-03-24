@@ -7,21 +7,29 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-echo === Audio Restart ===
+:: ── Colors ──
+for /f %%a in ('echo prompt $E ^| cmd') do set ESC=%%a
+set GREEN=%ESC%[32m
+set RED=%ESC%[31m
+set YELLOW=%ESC%[33m
+set CYAN=%ESC%[36m
+set RESET=%ESC%[0m
+
+echo %CYAN%=== Audio Restart ===%RESET%
 echo.
 
-echo [*] Killing audio processes...
+echo %CYAN%[*] Killing audio processes...%RESET%
 taskkill /f /im audiodg.exe >nul 2>&1
-echo     Done.
+echo %GREEN%    Done.%RESET%
 
-echo [*] Restarting audio services...
+echo %CYAN%[*] Restarting audio services...%RESET%
 net stop AudioEndpointBuilder /y >nul 2>&1
 net stop Audiosrv /y >nul 2>&1
 timeout /t 2 /nobreak >nul
 net start AudioEndpointBuilder >nul 2>&1
 net start Audiosrv >nul 2>&1
-echo     Done.
+echo %GREEN%    Done.%RESET%
 
 echo.
-echo [+] Audio restarted. Test your sound now.
+echo %GREEN%[+] Audio restarted. Test your sound now.%RESET%
 pause

@@ -7,12 +7,20 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-echo === Game Boost ===
+:: ── Colors ──
+for /f %%a in ('echo prompt $E ^| cmd') do set ESC=%%a
+set GREEN=%ESC%[32m
+set RED=%ESC%[31m
+set YELLOW=%ESC%[33m
+set CYAN=%ESC%[36m
+set RESET=%ESC%[0m
+
+echo %CYAN%=== Game Boost ===%RESET%
 echo.
-echo   [1] Boost  - Optimize for gaming
-echo   [2] Restore - Undo all changes
+echo %YELLOW%  [1] Boost  - Optimize for gaming%RESET%
+echo %YELLOW%  [2] Restore - Undo all changes%RESET%
 echo.
-set /p choice="Choice (1/2): "
+set /p choice="%YELLOW%Choice (1/2): %RESET%"
 echo.
 
 if "%choice%"=="2" goto restore
@@ -25,11 +33,11 @@ powershell -NoProfile -Command "(powercfg /getactivescheme) -match '[0-9a-f-]{36
 for /f "tokens=4" %%a in ('powercfg /getactivescheme') do set oldplan=%%a
 echo %oldplan% > "%TEMP%\gameboost_oldplan.txt"
 
-echo [*] Setting power plan to High Performance...
+echo %CYAN%[*] Setting power plan to High Performance...%RESET%
 powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c >nul
-echo     Done.
+echo %GREEN%    Done.%RESET%
 
-echo [*] Killing background processes...
+echo %CYAN%[*] Killing background processes...%RESET%
 taskkill /f /im OneDrive.exe >nul 2>&1
 taskkill /f /im SearchIndexer.exe >nul 2>&1
 taskkill /f /im SearchApp.exe >nul 2>&1
@@ -37,32 +45,32 @@ taskkill /f /im WidgetService.exe >nul 2>&1
 taskkill /f /im Widgets.exe >nul 2>&1
 taskkill /f /im YourPhone.exe >nul 2>&1
 taskkill /f /im WinStore.App.exe >nul 2>&1
-echo     Done.
+echo %GREEN%    Done.%RESET%
 
-echo [*] Disabling Xbox Game Bar...
+echo %CYAN%[*] Disabling Xbox Game Bar...%RESET%
 reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR" /v AppCaptureEnabled /t REG_DWORD /d 0 /f >nul
 reg add "HKCU\System\GameConfigStore" /v GameDVR_Enabled /t REG_DWORD /d 0 /f >nul
-echo     Done.
+echo %GREEN%    Done.%RESET%
 
-echo [*] Setting GPU to prefer maximum performance...
+echo %CYAN%[*] Setting GPU to prefer maximum performance...%RESET%
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /v HwSchMode /t REG_DWORD /d 2 /f >nul
-echo     Done.
+echo %GREEN%    Done.%RESET%
 
-echo [*] Disabling unnecessary services temporarily...
+echo %CYAN%[*] Disabling unnecessary services temporarily...%RESET%
 sc config "SysMain" start= disabled >nul & net stop SysMain >nul 2>&1
 sc config "DiagTrack" start= disabled >nul & net stop DiagTrack >nul 2>&1
-echo     Done.
+echo %GREEN%    Done.%RESET%
 
 echo.
-echo [+] Boost applied. Happy gaming!
-echo     Run this script again and choose Restore when done.
+echo %GREEN%[+] Boost applied. Happy gaming!%RESET%
+echo %CYAN%    Run this script again and choose Restore when done.%RESET%
 pause
 exit /b
 
 :: ── RESTORE ──────────────────────────────────────────────────────────────────
 :restore
 
-echo [*] Restoring power plan...
+echo %CYAN%[*] Restoring power plan...%RESET%
 if exist "%TEMP%\gameboost_oldplan.txt" (
     set /p oldplan=<"%TEMP%\gameboost_oldplan.txt"
     powercfg /setactive %oldplan% >nul
@@ -70,22 +78,22 @@ if exist "%TEMP%\gameboost_oldplan.txt" (
 ) else (
     powercfg /setactive 381b4222-f694-41f0-9685-ff5bb260df2e >nul
 )
-echo     Done.
+echo %GREEN%    Done.%RESET%
 
-echo [*] Re-enabling Xbox Game Bar...
+echo %CYAN%[*] Re-enabling Xbox Game Bar...%RESET%
 reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR" /v AppCaptureEnabled /t REG_DWORD /d 1 /f >nul
 reg add "HKCU\System\GameConfigStore" /v GameDVR_Enabled /t REG_DWORD /d 1 /f >nul
-echo     Done.
+echo %GREEN%    Done.%RESET%
 
-echo [*] Restoring GPU setting...
+echo %CYAN%[*] Restoring GPU setting...%RESET%
 reg delete "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /v HwSchMode /f >nul 2>&1
-echo     Done.
+echo %GREEN%    Done.%RESET%
 
-echo [*] Re-enabling services...
+echo %CYAN%[*] Re-enabling services...%RESET%
 sc config "SysMain" start= auto >nul & net start SysMain >nul 2>&1
 sc config "DiagTrack" start= auto >nul & net start DiagTrack >nul 2>&1
-echo     Done.
+echo %GREEN%    Done.%RESET%
 
 echo.
-echo [+] Everything restored.
+echo %GREEN%[+] Everything restored.%RESET%
 pause

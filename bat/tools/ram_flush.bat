@@ -6,14 +6,29 @@ if %errorlevel% neq 0 (
     pause
     exit /b
 )
-echo === RAM Flush ===
+
+:: ── Colors ──
+for /f %%a in ('echo prompt $E ^| cmd') do set ESC=%%a
+set GREEN=%ESC%[32m
+set RED=%ESC%[31m
+set YELLOW=%ESC%[33m
+set CYAN=%ESC%[36m
+set RESET=%ESC%[0m
+
+echo %CYAN%=== RAM Flush ===%RESET%
 echo.
 
 :: ── Write PowerShell script to temp file ─────────────────────────────────────
 set ps=%TEMP%\ramflush.ps1
 (
+    echo $esc = [char]27
+    echo $cyan = "$esc[36m"; $green = "$esc[32m"; $red = "$esc[31m"; $reset = "$esc[0m"
+    echo function Write-Label  { param^($msg^) Write-Host "${cyan}$msg${reset}" }
+    echo function Write-Good   { param^($msg^) Write-Host "${green}$msg${reset}" }
+    echo function Write-Bad    { param^($msg^) Write-Host "${red}$msg${reset}" }
+    echo.
     echo $before = [math]::Round^((Get-CimInstance Win32_OperatingSystem^).FreePhysicalMemory / 1MB, 1^)
-    echo Write-Host "[*] Free RAM before: $before GB"
+    echo Write-Label "[*] Free RAM before: $before GB"
     echo Write-Host ""
     echo.
     echo $code = @"
@@ -61,38 +76,38 @@ set ps=%TEMP%\ramflush.ps1
     echo [Privilege]::Enable^('SeIncreaseQuotaPrivilege'^)
     echo.
     echo # 1. Trim working sets (moves pages to standby list^)
-    echo Write-Host "[*] Trimming process working sets..."
+    echo Write-Label "[*] Trimming process working sets..."
     echo [MemoryPurge]::SetProcessWorkingSetSizeEx^([System.Diagnostics.Process]::GetCurrentProcess^(^).Handle, [IntPtr]-1, [IntPtr]-1, 0^) ^| Out-Null
     echo Get-Process ^| ForEach-Object {
     echo     try { [MemoryPurge]::SetProcessWorkingSetSizeEx^($_.Handle, [IntPtr]-1, [IntPtr]-1, 0^) ^| Out-Null } catch {}
     echo }
-    echo Write-Host "    Done."
+    echo Write-Good "    Done."
     echo.
     echo # 2. Flush modified page list to disk (so pages become standby^)
-    echo Write-Host "[*] Flushing modified page list..."
+    echo Write-Label "[*] Flushing modified page list..."
     echo $cmd = 4
     echo [MemoryPurge]::NtSetSystemInformation^(80, [ref]$cmd, [System.Runtime.InteropServices.Marshal]::SizeOf^($cmd^)^) ^| Out-Null
-    echo Write-Host "    Done."
+    echo Write-Good "    Done."
     echo.
     echo # 3. Purge standby list (actually frees the memory^)
-    echo Write-Host "[*] Purging standby list..."
+    echo Write-Label "[*] Purging standby list..."
     echo $cmd = 4
     echo [MemoryPurge]::NtSetSystemInformation^(80, [ref]$cmd, [System.Runtime.InteropServices.Marshal]::SizeOf^($cmd^)^) ^| Out-Null
     echo Start-Sleep -Milliseconds 500
     echo $cmd = 4
     echo [MemoryPurge]::NtSetSystemInformation^(80, [ref]$cmd, [System.Runtime.InteropServices.Marshal]::SizeOf^($cmd^)^) ^| Out-Null
-    echo Write-Host "    Done."
+    echo Write-Good "    Done."
     echo.
     echo $after = [math]::Round^((Get-CimInstance Win32_OperatingSystem^).FreePhysicalMemory / 1MB, 1^)
     echo $freed = [math]::Round^($after - $before, 1^)
     echo Write-Host ""
-    echo Write-Host "[*] Free RAM after:  $after GB"
-    echo if ^($freed -gt 0^) { Write-Host "[+] RAM freed: $freed GB" } else { Write-Host "[*] No significant RAM freed (already clean^)" }
+    echo Write-Label "[*] Free RAM after:  $after GB"
+    echo if ^($freed -gt 0^) { Write-Good "[+] RAM freed: $freed GB" } else { Write-Label "[*] No significant RAM freed (already clean^)" }
 ) > "%ps%"
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%ps%"
 del /f /q "%ps%"
 
 echo.
-echo === Done ===
+echo %CYAN%=== Done ===%RESET%
 pause

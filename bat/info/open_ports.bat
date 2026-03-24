@@ -7,5 +7,5 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0open_ports.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0..\ps1\open_ports.ps1"
 pause

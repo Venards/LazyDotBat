@@ -6,32 +6,41 @@ if %errorlevel% neq 0 (
     pause
     exit /b
 )
-echo === Network Optimization ===
+
+:: ── Colors ──
+for /f %%a in ('echo prompt $E ^| cmd') do set ESC=%%a
+set GREEN=%ESC%[32m
+set RED=%ESC%[31m
+set YELLOW=%ESC%[33m
+set CYAN=%ESC%[36m
+set RESET=%ESC%[0m
+
+echo %CYAN%=== Network Optimization ===%RESET%
 echo.
 
 :: ── 1. Flush DNS ─────────────────────────────────────────────────────────────
-echo [*] Flushing DNS cache...
+echo %CYAN%[*] Flushing DNS cache...%RESET%
 ipconfig /flushdns >nul
-echo     Done.
+echo %GREEN%    Done.%RESET%
 echo.
 
 :: ── 2. Reset network stack ───────────────────────────────────────────────────
-echo [*] Resetting network stack...
+echo %CYAN%[*] Resetting network stack...%RESET%
 netsh winsock reset >nul
 netsh int ip reset >nul
-echo     Done.
+echo %GREEN%    Done.%RESET%
 echo.
 
 :: ── 3. DNS server ────────────────────────────────────────────────────────────
-echo Which DNS would you like to use?
-echo   [1] Cloudflare  (1.1.1.1)  - fastest
-echo   [2] Google      (8.8.8.8)  - most reliable
-echo   [3] Keep current
+echo %YELLOW%Which DNS would you like to use?%RESET%
+echo %YELLOW%  [1] Cloudflare  (1.1.1.1)  - fastest%RESET%
+echo %YELLOW%  [2] Google      (8.8.8.8)  - most reliable%RESET%
+echo %YELLOW%  [3] Keep current%RESET%
 echo.
-set /p dns="Choice (1/2/3): "
+set /p dns="%YELLOW%Choice (1/2/3): %RESET%"
 
 if "%dns%"=="3" (
-    echo     Skipped.
+    echo %CYAN%    Skipped.%RESET%
     goto done
 )
 
@@ -41,16 +50,16 @@ for /f "tokens=*" %%i in ('powershell -NoProfile -Command "(Get-NetAdapter | Whe
 if "%dns%"=="1" (
     netsh interface ip set dns name="%iface%" static 1.1.1.1 >nul
     netsh interface ip add dns name="%iface%" 1.0.0.1 index=2 >nul
-    echo     Set to Cloudflare (1.1.1.1 / 1.0.0.1)
+    echo %GREEN%    Set to Cloudflare (1.1.1.1 / 1.0.0.1)%RESET%
 ) else if "%dns%"=="2" (
     netsh interface ip set dns name="%iface%" static 8.8.8.8 >nul
     netsh interface ip add dns name="%iface%" 8.8.4.4 index=2 >nul
-    echo     Set to Google (8.8.8.8 / 8.8.4.4)
+    echo %GREEN%    Set to Google (8.8.8.8 / 8.8.4.4)%RESET%
 ) else (
-    echo     Invalid choice, skipped.
+    echo %RED%    Invalid choice, skipped.%RESET%
 )
 
 :done
 echo.
-echo === All done - restart recommended ===
+echo %CYAN%=== All done - restart recommended ===%RESET%
 pause
