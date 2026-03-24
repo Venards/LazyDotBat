@@ -23,6 +23,8 @@ A collection of Windows batch scripts for system maintenance, optimization, and 
 | `system_info.bat` | Full system overview: OS, CPU, RAM, GPU, storage, BIOS, HWID |
 | `disk_health.bat` | Disk health, drive usage, volume status |
 | `network_info.bat` | Active adapters, public IP, ping test |
+| `open_ports.bat` | TCP/UDP listening ports with owning processes, flags suspicious ports |
+| `security_audit.bat` | Firewall, antivirus, UAC, RDP, SMBv1, BitLocker, and more |
 
 ## Usage
 

@@ -27,3 +27,5 @@ Read-only scripts that display system information.
 | `system_info.bat` | Full system overview: OS, CPU, RAM, GPU, storage, BIOS, HWID |
 | `disk_health.bat` | Physical disk health, drive usage, and volume status |
 | `network_info.bat` | Active adapters, public IP, and ping test |
+| `open_ports.bat` | TCP/UDP listening ports with owning processes, flags suspicious ports |
+| `security_audit.bat` | Firewall, antivirus, UAC, RDP, SMBv1, BitLocker, and more |
