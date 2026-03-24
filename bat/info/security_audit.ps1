@@ -1,95 +1,130 @@
 $sep = '=' * 50
 $warn = 0
+
+function Write-Good  ($msg) { Write-Host $msg -ForegroundColor Green }
+function Write-Bad   ($msg) { Write-Host $msg -ForegroundColor Red }
+function Write-Warn  ($msg) { Write-Host $msg -ForegroundColor Yellow }
+function Write-Label ($msg) { Write-Host $msg -ForegroundColor Cyan }
+
 Write-Host ''
 Write-Host $sep
-Write-Host '  SECURITY AUDIT'
+Write-Label '  SECURITY AUDIT'
 Write-Host $sep
 
 # -- Firewall --
 Write-Host ''
-Write-Host '[ FIREWALL ]'
+Write-Label '[ FIREWALL ]'
 $profiles = Get-NetFirewallProfile -ErrorAction SilentlyContinue
 foreach ($p in $profiles) {
-    $status = if ($p.Enabled) { 'ON' } else { 'OFF' }
-    Write-Host "  $($p.Name): $status"
-    if (-not $p.Enabled) { $warn++ }
+    if ($p.Enabled) {
+        Write-Good "  $($p.Name): ON"
+    } else {
+        Write-Bad "  $($p.Name): OFF [!]"
+        $warn++
+    }
 }
 
 # -- Antivirus --
 Write-Host ''
-Write-Host '[ ANTIVIRUS ]'
+Write-Label '[ ANTIVIRUS ]'
 $av = Get-CimInstance -Namespace 'root/SecurityCenter2' -ClassName AntiVirusProduct -ErrorAction SilentlyContinue
 if ($av) {
     foreach ($a in $av) {
         $hex = '{0:X6}' -f $a.productState
-        $state = switch ([int]('0x' + $hex.Substring(2,2))) {
-            0  { 'OFF'; $script:warn++ }
-            1  { 'ON' }
-            default { 'UNKNOWN' }
+        $code = [int]('0x' + $hex.Substring(2,2))
+        if ($code -eq 1) {
+            Write-Good "  $($a.displayName): ON"
+        } else {
+            Write-Bad "  $($a.displayName): OFF [!]"
+            $warn++
         }
-        Write-Host "  $($a.displayName): $state"
     }
 } else {
-    Write-Host '  No antivirus detected'
+    Write-Bad '  No antivirus detected [!]'
     $warn++
 }
 
 # -- Windows Defender --
 Write-Host ''
-Write-Host '[ WINDOWS DEFENDER ]'
+Write-Label '[ WINDOWS DEFENDER ]'
 try {
     $def = Get-MpComputerStatus -ErrorAction Stop
-    $rt = if ($def.RealTimeProtectionEnabled) { 'ON' } else { 'OFF'; $script:warn++ }
-    Write-Host "  Real-Time Protection : $rt"
-    $tamper = if ($def.IsTamperProtected) { 'ON' } else { 'OFF'; $script:warn++ }
-    Write-Host "  Tamper Protection    : $tamper"
+    if ($def.RealTimeProtectionEnabled) {
+        Write-Good '  Real-Time Protection : ON'
+    } else {
+        Write-Bad '  Real-Time Protection : OFF [!]'
+        $warn++
+    }
+    if ($def.IsTamperProtected) {
+        Write-Good '  Tamper Protection    : ON'
+    } else {
+        Write-Bad '  Tamper Protection    : OFF [!]'
+        $warn++
+    }
     $lastScan = $def.QuickScanEndTime.ToString('yyyy-MM-dd HH:mm')
     Write-Host "  Last Quick Scan      : $lastScan"
     $sigAge = $def.AntivirusSignatureAge
-    Write-Host "  Signature Age        : $sigAge days"
-    if ($sigAge -gt 7) { Write-Host '  [!] Signatures are stale'; $warn++ }
+    if ($sigAge -gt 7) {
+        Write-Bad "  Signature Age        : $sigAge days [!] Stale"
+        $warn++
+    } else {
+        Write-Good "  Signature Age        : $sigAge days"
+    }
 } catch {
-    Write-Host '  Defender not available'
+    Write-Warn '  Defender not available'
 }
 
 # -- UAC --
 Write-Host ''
-Write-Host '[ UAC ]'
+Write-Label '[ UAC ]'
 $uac = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -ErrorAction SilentlyContinue
+if ($uac.EnableLUA -eq 1) {
+    Write-Good '  UAC Enabled  : ON'
+} else {
+    Write-Bad '  UAC Enabled  : OFF [!]'
+    $warn++
+}
 $level = switch ($uac.ConsentPromptBehaviorAdmin) {
-    0 { 'Disabled (no prompt)'; $script:warn++ }
+    0 { 'Disabled (no prompt)' }
     1 { 'High (secure desktop)' }
     2 { 'High (secure desktop)' }
     5 { 'Default' }
     default { 'Unknown' }
 }
-$enabled = if ($uac.EnableLUA -eq 1) { 'ON' } else { 'OFF'; $script:warn++ }
-Write-Host "  UAC Enabled  : $enabled"
-Write-Host "  Prompt Level : $level"
+if ($uac.ConsentPromptBehaviorAdmin -eq 0) {
+    Write-Bad "  Prompt Level : $level [!]"
+    $warn++
+} else {
+    Write-Host "  Prompt Level : $level"
+}
 
 # -- RDP --
 Write-Host ''
-Write-Host '[ REMOTE DESKTOP ]'
+Write-Label '[ REMOTE DESKTOP ]'
 $rdp = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' -ErrorAction SilentlyContinue).fDenyTSConnections
 if ($rdp -eq 0) {
-    Write-Host '  RDP: ENABLED'
-    Write-Host '  [!] Remote Desktop is open'
+    Write-Bad '  RDP: ENABLED [!]'
     $warn++
     $nla = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -ErrorAction SilentlyContinue).UserAuthentication
-    if ($nla -eq 1) { Write-Host '  NLA: Required (good)' } else { Write-Host '  NLA: Not required [!]'; $warn++ }
+    if ($nla -eq 1) {
+        Write-Good '  NLA: Required'
+    } else {
+        Write-Bad '  NLA: Not required [!]'
+        $warn++
+    }
 } else {
-    Write-Host '  RDP: Disabled'
+    Write-Good '  RDP: Disabled'
 }
 
 # -- Guest Account --
 Write-Host ''
-Write-Host '[ LOCAL ACCOUNTS ]'
+Write-Label '[ LOCAL ACCOUNTS ]'
 $guest = Get-LocalUser -Name 'Guest' -ErrorAction SilentlyContinue
 if ($guest -and $guest.Enabled) {
-    Write-Host '  Guest Account: ENABLED [!]'
+    Write-Bad '  Guest Account: ENABLED [!]'
     $warn++
 } else {
-    Write-Host '  Guest Account: Disabled'
+    Write-Good '  Guest Account: Disabled'
 }
 $admins = Get-LocalGroupMember -Group 'Administrators' -ErrorAction SilentlyContinue
 Write-Host '  Administrators:'
@@ -97,76 +132,91 @@ foreach ($a in $admins) { Write-Host "    - $($a.Name)" }
 
 # -- AutoLogin --
 Write-Host ''
-Write-Host '[ AUTOLOGIN ]'
+Write-Label '[ AUTOLOGIN ]'
 $autoLogin = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -ErrorAction SilentlyContinue
 if ($autoLogin.AutoAdminLogon -eq '1') {
-    Write-Host '  Auto Login: ENABLED [!]'
+    Write-Bad '  Auto Login: ENABLED [!]'
     $warn++
-    if ($autoLogin.DefaultPassword) { Write-Host '  [!] Password stored in plaintext in registry'; $warn++ }
+    if ($autoLogin.DefaultPassword) {
+        Write-Bad '  [!] Password stored in plaintext in registry'
+        $warn++
+    }
 } else {
-    Write-Host '  Auto Login: Disabled'
+    Write-Good '  Auto Login: Disabled'
 }
 
 # -- SMB --
 Write-Host ''
-Write-Host '[ SMB ]'
+Write-Label '[ SMB ]'
 $smb1 = (Get-SmbServerConfiguration -ErrorAction SilentlyContinue).EnableSMB1Protocol
-if ($smb1) { Write-Host '  SMBv1: ENABLED [!] (vulnerable to EternalBlue)'; $warn++ } else { Write-Host '  SMBv1: Disabled' }
+if ($smb1) {
+    Write-Bad '  SMBv1: ENABLED [!] (vulnerable to EternalBlue)'
+    $warn++
+} else {
+    Write-Good '  SMBv1: Disabled'
+}
 $shares = Get-SmbShare -ErrorAction SilentlyContinue | Where-Object { $_.Name -notlike '*$' }
 if ($shares) {
-    Write-Host '  Non-default shares:'
+    Write-Warn '  Non-default shares:'
     foreach ($s in $shares) { Write-Host "    - $($s.Name) -> $($s.Path)" }
 } else {
-    Write-Host '  No non-default shares'
+    Write-Good '  No non-default shares'
 }
 
 # -- BitLocker --
 Write-Host ''
-Write-Host '[ BITLOCKER ]'
+Write-Label '[ BITLOCKER ]'
 $bl = Get-BitLockerVolume -ErrorAction SilentlyContinue
 if ($bl) {
     foreach ($v in $bl) {
-        $status = $v.ProtectionStatus
-        Write-Host "  $($v.MountPoint) - Protection: $status"
-        if ($status -eq 'Off') { $warn++ }
+        if ($v.ProtectionStatus -eq 'On') {
+            Write-Good "  $($v.MountPoint) - Protection: On"
+        } else {
+            Write-Bad "  $($v.MountPoint) - Protection: Off [!]"
+            $warn++
+        }
     }
 } else {
-    Write-Host '  BitLocker not available'
+    Write-Warn '  BitLocker not available'
 }
 
 # -- Exposed Ports --
 Write-Host ''
-Write-Host '[ EXPOSED PORTS (quick view) ]'
+Write-Label '[ EXPOSED PORTS (quick view) ]'
 $listening = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $_.LocalAddress -eq '0.0.0.0' -or $_.LocalAddress -eq '::' } | Sort-Object LocalPort -Unique
 if ($listening) {
     foreach ($l in $listening) {
         $proc = try { (Get-Process -Id $l.OwningProcess -ErrorAction SilentlyContinue).ProcessName } catch { '???' }
-        Write-Host "  Port $($l.LocalPort) - $proc"
+        Write-Warn "  Port $($l.LocalPort) - $proc"
     }
 } else {
-    Write-Host '  No ports exposed on all interfaces'
+    Write-Good '  No ports exposed on all interfaces'
 }
 
 # -- Windows Update --
 Write-Host ''
-Write-Host '[ WINDOWS UPDATE ]'
+Write-Label '[ WINDOWS UPDATE ]'
 $hotfix = Get-HotFix -ErrorAction SilentlyContinue | Sort-Object InstalledOn -Descending | Select-Object -First 1
 if ($hotfix) {
     $lastPatch = $hotfix.InstalledOn.ToString('yyyy-MM-dd')
     $daysSince = ([datetime]::Now - $hotfix.InstalledOn).Days
-    Write-Host "  Last Patch  : $lastPatch ($daysSince days ago)"
-    if ($daysSince -gt 30) { Write-Host '  [!] System may be missing patches'; $warn++ }
+    if ($daysSince -gt 30) {
+        Write-Bad "  Last Patch  : $lastPatch ($daysSince days ago) [!]"
+        $warn++
+    } else {
+        Write-Good "  Last Patch  : $lastPatch ($daysSince days ago)"
+    }
 } else {
-    Write-Host '  Could not retrieve update history'
+    Write-Warn '  Could not retrieve update history'
 }
 
 # -- Summary --
 Write-Host ''
 Write-Host $sep
 if ($warn -eq 0) {
-    Write-Host '  [+] No issues found.'
+    Write-Good '  [+] No issues found.'
 } else {
-    Write-Host "  [!] $warn issue(s) found. Review items marked with [!] above."
+    Write-Bad "  [!] $warn issue(s) found. Review items marked with [!] above."
 }
 Write-Host $sep
 Write-Host ''
