@@ -32,7 +32,7 @@ Detailed network information and connectivity test.
 - Your current public IP
 - Ping test to 8.8.8.8, 1.1.1.1, and google.com
 
-> Requires `network_info.ps1` to be in the same folder.
+> Requires `network_info.ps1` in the `ps1/` folder.
 
 ---
 

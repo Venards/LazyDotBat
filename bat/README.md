@@ -4,6 +4,14 @@ A collection of Windows batch scripts for system maintenance, optimization, and 
 
 > **Note:** All scripts require running as Administrator. Right-click -> Run as administrator.
 
+## Structure
+
+```
+tools/    Action scripts (clean, optimize, fix)
+info/     Read-only system information scripts
+ps1/      PowerShell scripts used by info/
+```
+
 ## Folders
 
 ### `tools/`
@@ -12,7 +20,7 @@ Action scripts for cleaning, optimizing, and fixing your system.
 | Script | Description |
 |---|---|
 | `disk_cleaner.bat` | Remove junk files, browser cache, temp folders, and more |
-| `ram_flush.bat` | Free up RAM being held by Windows unnecessarily |
+| `ram_flush.bat` | Purge standby memory list to actually free RAM |
 | `network_boost.bat` | Flush DNS, reset network stack, and switch DNS provider |
 | `boost_for_gaming.bat` | Optimize your PC for gaming, with a restore option |
 | `disable_windows_junk.bat` | Temporarily disable Windows bloatware and telemetry |

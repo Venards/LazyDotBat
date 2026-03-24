@@ -13,8 +13,10 @@ Removes junk files and clears caches to free up disk space.
 ---
 
 ### `ram_flush.bat`
-Frees up RAM that Windows holds onto after apps close.
-- Forces Windows to release standby/cached memory
+Purges the standby memory list to actually free RAM.
+- Trims process working sets
+- Flushes modified page list
+- Purges standby list via NtSetSystemInformation (same API as RAMMap)
 - Shows free RAM before and after
 
 ---
